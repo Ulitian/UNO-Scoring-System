@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNO Flip! 计分系统 | iOS液态玻璃版</title>
+    <style>
+        /* 全局基础样式 - 苹方字体+iOS风格重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            /* 苹果苹方字体优先级：SF Pro > 苹方 > 后备字体 */
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "SF Pro SC", "SF Pro Text", "SF Pro Icons", "HanHei SC", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* iOS风格背景 - 渐变+噪点纹理 */
+        body {
+            background: linear-gradient(135deg, #f0f4f8 0%, #e8eef2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            font-weight: 400;
+            font-size: 16px;
+            color: #1d1d1f;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%239C92AC' fill-opacity='0.05' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='3'/%3E%3Ccircle cx='13' cy='13' r='3'/%3E%3C/g%3E%3C/svg%3E");
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* 主容器 - 液态玻璃核心样式 */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 24px;
+            box-shadow: 
+                0 8px 32px rgba(0, 0, 0, 0.08),
+                0 1px 2px rgba(0, 0, 0, 0.05);
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 标题样式 - 苹方粗体+iOS间距 */
+        h1 {
+            color: #1d1d1f;
+            text-align: center;
+            margin-bottom: 32px;
+            font-size: 32px;
+            font-weight: 700; /* 苹方粗体 */
+            letter-spacing: -0.5px;
+            position: relative;
+            font-family: "PingFang SC", "SF Pro Display", sans-serif;
+        }
+        h1::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(90deg, #ff3b30, #ff9500);
+            border-radius: 2px;
+            margin: 12px auto 0;
+        }
+
+        h2 {
+            color: #1d1d1f;
+            font-size: 20px;
+            font-weight: 600; /* 苹方半粗体 */
+            margin-bottom: 20px;
+            letter-spacing: -0.3px;
+            font-family: "PingFang SC", "SF Pro Display", sans-serif;
+        }
+
+        h3 {
+            color: #1d1d1f;
+            font-size: 18px;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+            font-family: "PingFang SC", "SF Pro Display", sans-serif;
+        }
+
+        /* 游戏设置区域 - 液态玻璃子容器 */
+        .setup-section {
+            margin-bottom: 36px;
+            padding: 24px;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 18px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 玩家人数选择 */
+        .player-count {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .player-count label {
+            font-size: 16px;
+            color: #1d1d1f;
+            font-weight: 500; /* 苹方中粗体 */
+            font-family: "PingFang SC", sans-serif;
+        }
+        .player-count select {
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            min-width: 120px;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%231d1d1f' d='M10.8 1.2L6 6 1.2 1.2A1 1 0 012.6 0l4 4 4-4a1 1 0 011.4 1.4z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            transition: all 0.2s ease;
+            font-family: "PingFang SC", sans-serif;
+            font-weight: 400;
+        }
+        .player-count select:hover {
+            border-color: rgba(0, 0, 0, 0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 玩家信息设置区域 - 液态玻璃样式 */
+        .player-info-setup {
+            margin-top: 24px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 18px;
+            display: none;
+        }
+
+        /* 玩家信息项 - 彻底修复头像样式 */
+        .player-info-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+            gap: 16px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 12px;
+        }
+        /* 基础头像样式（统一复用） */
+        .base-avatar {
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: white;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            font-family: "PingFang SC", sans-serif;
+        }
+        /* 设置页头像 */
+        .setup-avatar {
+            width: 48px;
+            height: 48px;
+            font-size: 18px;
+        }
+        /* 计分卡头像 */
+        .card-avatar {
+            width: 36px;
+            height: 36px;
+            font-size: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .player-info-inputs {
+            flex: 1;
+        }
+        .player-info-inputs input[type="text"] {
+            padding: 12px 16px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            font-size: 16px;
+            width: 200px;
+            margin-right: 12px;
+            margin-bottom: 8px;
+            transition: all 0.2s ease;
+            font-family: "PingFang SC", sans-serif;
+            font-weight: 400;
+        }
+        .player-info-inputs input[type="text"]:focus {
+            outline: none;
+            border-color: #ff3b30;
+            box-shadow: 0 0 0 4px rgba(255, 59, 48, 0.1);
+        }
+        .avatar-upload {
+            font-size: 13px;
+            color: #86868b;
+            cursor: pointer;
+            transition: color 0.2s ease;
+            font-family: "PingFang SC", sans-serif;
+        }
+        .avatar-upload:hover {
+            color: #ff3b30;
+        }
+        input[type="file"] {
+            display: none;
+        }
+
+        /* iOS风格按钮 - 液态玻璃+渐变 */
+        button {
+            background: linear-gradient(135deg, #ff3b30, #ff9500);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 16px rgba(255, 59, 48, 0.2);
+            font-family: "PingFang SC", "SF Pro Display", sans-serif;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 59, 48, 0.3);
+            background: linear-gradient(135deg, #ff2d20, #ff8c00);
+        }
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(255, 59, 48, 0.2);
+        }
+
+        /* 计分区域 */
+        .score-section {
+            display: none;
+            margin-top: 36px;
+        }
+
+        /* 玩家计分卡片 - 液态玻璃网格 */
+        .player-score-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+        .player-card {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease;
+        }
+        .player-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+        .player-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .player-card h3 {
+            color: #1d1d1f;
+            margin: 0;
+            font-size: 18px;
+        }
+
+        /* 分数显示 */
+        .current-score {
+            font-size: 28px;
+            font-weight: 700;
+            color: #ff3b30;
+            margin: 16px 0;
+            letter-spacing: -0.5px;
+            font-family: "PingFang SC", sans-serif;
+        }
+        .card-points {
+            margin-bottom: 16px;
+        }
+        .card-points label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #86868b;
+            font-weight: 500;
+            font-family: "PingFang SC", sans-serif;
+        }
+        .card-points input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            font-size: 16px;
+            transition: all 0.2s ease;
+            font-family: "PingFang SC", sans-serif;
+            font-weight: 400;
+        }
+        .card-points input:focus {
+            outline: none;
+            border-color: #ff3b30;
+            box-shadow: 0 0 0 4px rgba(255, 59, 48, 0.1);
+        }
+
+        /* 轮次控制按钮 */
+        .round-controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 24px;
+            gap: 16px;
+        }
+        .round-controls button {
+            flex: 1;
+            text-align: center;
+        }
+
+        /* 历史记录区域 */
+        .round-history {
+            margin-top: 36px;
+            padding: 24px;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 18px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+        }
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 12px;
+            overflow: hidden;
+            font-family: "PingFang SC", sans-serif;
+        }
+        .history-table th {
+            padding: 16px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.9);
+            color: #1d1d1f;
+            font-weight: 600;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        .history-table td {
+            padding: 16px;
+            text-align: center;
+            color: #1d1d1f;
+            font-size: 15px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+            font-weight: 400;
+        }
+        .history-table tr:last-child td {
+            border-bottom: none;
+        }
+        .history-table tr:hover td {
+            background: rgba(255, 59, 48, 0.03);
+        }
+
+        /* 获胜提示 - iOS风格弹窗 */
+        .winner-alert {
+            background: linear-gradient(135deg, #34c759, #30d158);
+            color: white;
+            padding: 24px;
+            border-radius: 18px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 24px;
+            display: none;
+            box-shadow: 0 8px 24px rgba(52, 199, 89, 0.2);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            font-family: "PingFang SC", sans-serif;
+        }
+
+        /* 规则提示 - 液态玻璃侧边栏 */
+        .rules-tip {
+            margin-top: 36px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-left: 4px solid #007aff;
+            border-radius: 18px;
+            font-size: 14px;
+            color: #1d1d1f;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+            font-family: "PingFang SC", sans-serif;
+        }
+        .rules-tip h3 {
+            margin-bottom: 12px;
+            color: #007aff;
+            font-size: 16px;
+        }
+        .rules-tip ul {
+            margin-left: 20px;
+            line-height: 1.8;
+            color: #424245;
+            font-weight: 400;
+        }
+        .rules-tip li {
+            margin-bottom: 8px;
+        }
+
+        /* 响应式适配 - 移动端iOS风格 */
+        @media (max-width: 768px) {
+            body {
+                padding: 16px;
+            }
+            .container {
+                padding: 24px;
+                border-radius: 20px;
+            }
+            .player-score-cards {
+                grid-template-columns: 1fr;
+            }
+            .round-controls {
+                flex-direction: column;
+            }
+            .player-info-inputs input[type="text"] {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>UNO Flip! 计分系统</h1>
+
+        <!-- 游戏设置区域 -->
+        <div class="setup-section">
+            <h2>游戏设置</h2>
+            <div class="player-count">
+                <label for="playerNumber">选择玩家人数：</label>
+                <select id="playerNumber">
+                    <option value="2">2人</option>
+                    <option value="3">3人</option>
+                    <option value="4">4人</option>
+                    <option value="5">5人</option>
+                    <option value="6">6人</option>
+                </select>
+            </div>
+            <button id="setupPlayers">设置玩家信息</button>
+            
+            <!-- 玩家信息设置区域 -->
+            <div class="player-info-setup" id="playerInfoSetup">
+                <h3>玩家信息设置</h3>
+                <div id="playerInfoItems"></div>
+                <button id="startGame" style="margin-top: 16px;">开始游戏</button>
+            </div>
+        </div>
+
+        <!-- 计分区域（默认隐藏） -->
+        <div class="score-section" id="scoreSection">
+            <h2>本轮计分</h2>
+            <div class="player-score-cards" id="playerCards"></div>
+
+            <div class="round-controls">
+                <button id="calculateRound">计算本轮得分</button>
+                <button id="resetGame">重置游戏</button>
+            </div>
+
+            <!-- 获胜提示 -->
+            <div class="winner-alert" id="winnerAlert"></div>
+
+            <!-- 历史记录 -->
+            <div class="round-history">
+                <h2>游戏历史记录</h2>
+                <table class="history-table" id="historyTable">
+                    <thead id="historyHeader"></thead>
+                    <tbody id="historyBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 规则提示 -->
+        <div class="rules-tip">
+            <h3>UNO Flip! 计分规则</h3>
+            <ul>
+                <li>数字牌（0-9）：对应数字分值（如7分牌得7分）</li>
+                <li>基础功能牌（反转/跳过/+2）：单面10分 | 双面20分</li>
+                <li>万能牌（变色/+5）：单面20分 | 双面40分</li>
+                <li>万能+5换色牌：单面50分 | 双面60分</li>
+                <li>每轮赢家获得其他玩家手中所有牌的总分，先达500分获胜</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let playerCount = 2;
+        let players = [];
+        let roundNumber = 0;
+        let gameWon = false;
+        // iOS风格头像渐变色（独立存储，避免样式传递问题）
+        const avatarGradients = [
+            'linear-gradient(135deg, #ff3b30, #ff9500)',
+            'linear-gradient(135deg, #007aff, #5ac8fa)',
+            'linear-gradient(135deg, #34c759, #30d158)',
+            'linear-gradient(135deg, #af52de, #bf5af2)',
+            'linear-gradient(135deg, #ff2d55, #ff375f)',
+            'linear-gradient(135deg, #ffcc00, #ffd633)'
+        ];
+
+        // DOM元素
+        const playerNumberSelect = document.getElementById('playerNumber');
+        const setupPlayersBtn = document.getElementById('setupPlayers');
+        const playerInfoSetup = document.getElementById('playerInfoSetup');
+        const playerInfoItems = document.getElementById('playerInfoItems');
+        const startGameBtn = document.getElementById('startGame');
+        const scoreSection = document.getElementById('scoreSection');
+        const playerCards = document.getElementById('playerCards');
+        const calculateRoundBtn = document.getElementById('calculateRound');
+        const resetGameBtn = document.getElementById('resetGame');
+        const winnerAlert = document.getElementById('winnerAlert');
+        const historyHeader = document.getElementById('historyHeader');
+        const historyBody = document.getElementById('historyBody');
+
+        // 绑定事件
+        setupPlayersBtn.addEventListener('click', showPlayerInfoSetup);
+        startGameBtn.addEventListener('click', initGame);
+        calculateRoundBtn.addEventListener('click', calculateRoundScores);
+        resetGameBtn.addEventListener('click', resetGame);
+
+        // 显示玩家信息设置面板 - 重构头像创建逻辑
+        function showPlayerInfoSetup() {
+            playerCount = parseInt(playerNumberSelect.value);
+            playerInfoItems.innerHTML = '';
+            
+            // 生成每个玩家的信息输入项
+            for (let i = 0; i < playerCount; i++) { // 改用0索引，避免id混乱
+                const gradient = avatarGradients[i];
+                const playerId = i + 1;
+                const initial = `P${playerId}`; // 默认首字母P1/P2...
+                
+                const infoItem = document.createElement('div');
+                infoItem.className = 'player-info-item';
+                // 独立设置头像样式，使用基础类+渐变
+                infoItem.innerHTML = `
+                    <div class="base-avatar setup-avatar" style="${gradient}" id="setupAvatar${playerId}">${initial}</div>
+                    <div class="player-info-inputs">
+                        <input type="text" id="playerName${playerId}" placeholder="输入玩家${playerId}姓名" value="玩家${playerId}">
+                        <label for="avatarUpload${playerId}" class="avatar-upload">上传头像</label>
+                        <input type="file" id="avatarUpload${playerId}" accept="image/png, image/jpeg" onchange="uploadAvatar(${playerId})">
+                    </div>
+                `;
+                playerInfoItems.appendChild(infoItem);
+            }
+            
+            // 显示玩家信息设置区域
+            playerInfoSetup.style.display = 'block';
+        }
+
+        // 上传头像（预览）- 彻底重构，避免样式覆盖
+        function uploadAvatar(playerId) {
+            const fileInput = document.getElementById(`avatarUpload${playerId}`);
+            const avatarElement = document.getElementById(`setupAvatar${playerId}`);
+            
+            if (fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // 保留基础头像样式，仅替换背景为图片
+                    avatarElement.style.cssText = `
+                        width: 48px;
+                        height: 48px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: 700;
+                        color: white;
+                        overflow: hidden;
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                        font-family: "PingFang SC", sans-serif;
+                        font-size: 18px;
+                        background: url(${e.target.result}) center/cover no-repeat;
+                    `;
+                    avatarElement.innerHTML = ''; // 清空首字母
+                }
+                reader.readAsDataURL(fileInput.files[0]);
+            }
+        }
+
+        // 初始化游戏函数 - 重构玩家数据存储
+        function initGame() {
+            // 收集玩家信息
+            players = [];
+            for (let i = 1; i <= playerCount; i++) {
+                const nameInput = document.getElementById(`playerName${i}`);
+                const avatarElement = document.getElementById(`setupAvatar${i}`);
+                const playerName = nameInput.value.trim() || `玩家${i}`;
+                const firstChar = playerName.charAt(0); // 提取姓名首字母
+                // 判断是否是图片头像（通过背景样式判断）
+                const isImageAvatar = avatarElement.style.background.includes('url(');
+                // 存储核心信息，而非完整样式（避免传递错误）
+                players.push({
+                    id: i,
+                    name: playerName,
+                    gradient: avatarGradients[i-1], // 存储渐变值
+                    isImageAvatar: isImageAvatar,
+                    avatarImage: isImageAvatar ? avatarElement.style.background : '', // 仅存图片背景
+                    firstChar: firstChar,
+                    totalScore: 0,
+                    roundPoints: 0
+                });
+            }
+            
+            // 重置游戏状态
+            roundNumber = 0;
+            gameWon = false;
+            winnerAlert.style.display = 'none';
+            
+            // 渲染玩家计分卡片
+            renderPlayerCards();
+            
+            // 初始化历史记录表格
+            initHistoryTable();
+            
+            // 显示计分区域，隐藏设置区域
+            scoreSection.style.display = 'block';
+            playerInfoSetup.style.display = 'none';
+        }
+
+        // 渲染玩家计分卡片 - 完全重构，确保头像100%显示
+        function renderPlayerCards() {
+            playerCards.innerHTML = '';
+            
+            players.forEach(player => {
+                const card = document.createElement('div');
+                card.className = 'player-card';
+                
+                // 单独构建头像HTML，避免样式拼接错误
+                let avatarHtml = '';
+                if (player.isImageAvatar) {
+                    // 图片头像：使用存储的图片背景 + 卡片头像尺寸
+                    avatarHtml = `<div class="base-avatar card-avatar" style="${player.avatarImage}"></div>`;
+                } else {
+                    // 默认头像：使用渐变 + 姓名首字母
+                    avatarHtml = `<div class="base-avatar card-avatar" style="${player.gradient}">${player.firstChar}</div>`;
+                }
+                
+                // 构建卡片内容
+                card.innerHTML = `
+                    <div class="player-card-header">
+                        ${avatarHtml}
+                        <h3>${player.name}</h3>
+                    </div>
+                    <div class="current-score">总分: ${player.totalScore}</div>
+                    <div class="card-points">
+                        <label for="player${player.id}Points">本轮手牌总分：</label>
+                        <input type="number" id="player${player.id}Points" 
+                               value="0" min="0" placeholder="输入分数">
+                    </div>
+                `;
+                playerCards.appendChild(card);
+            });
+        }
+
+        // 初始化历史记录表格
+        function initHistoryTable() {
+            // 创建表头
+            let headerHtml = '<tr><th>轮次</th>';
+            players.forEach(player => {
+                headerHtml += `<th>${player.name} 得分</th>`;
+            });
+            headerHtml += '<th>本轮赢家</th></tr>';
+            historyHeader.innerHTML = headerHtml;
+            
+            // 清空表格内容
+            historyBody.innerHTML = '';
+        }
+
+        // 计算本轮得分
+        function calculateRoundScores() {
+            if (gameWon) return;
+            
+            roundNumber++;
+            
+            // 获取本轮各玩家的手牌分数
+            let totalRoundPoints = 0;
+            players.forEach(player => {
+                const pointsInput = document.getElementById(`player${player.id}Points`);
+                player.roundPoints = parseInt(pointsInput.value) || 0;
+                totalRoundPoints += player.roundPoints;
+                // 重置输入框
+                pointsInput.value = 0;
+            });
+            
+            // 找到本轮手牌分数为0的玩家（赢家）
+            const winner = players.find(p => p.roundPoints === 0);
+            
+            if (!winner) {
+                alert('请选择本轮赢家（赢家手牌分数应为0）！');
+                roundNumber--;
+                return;
+            }
+            
+            // 给赢家加分
+            winner.totalScore += totalRoundPoints;
+            
+            // 更新玩家计分卡片
+            renderPlayerCards();
+            
+            // 添加到历史记录
+            addToHistory(winner, totalRoundPoints);
+            
+            // 检查是否有人达到500分获胜
+            checkWinner();
+        }
+
+        // 添加到历史记录
+        function addToHistory(winner, totalRoundPoints) {
+            const row = document.createElement('tr');
+            let rowHtml = `<td>第${roundNumber}轮</td>`;
+            
+            players.forEach(player => {
+                rowHtml += `<td>${player === winner ? totalRoundPoints : 0}</td>`;
+            });
+            
+            rowHtml += `<td>${winner.name}</td>`;
+            row.innerHTML = rowHtml;
+            historyBody.appendChild(row);
+        }
+
+        // 检查是否有玩家获胜
+        function checkWinner() {
+            const winner = players.find(p => p.totalScore >= 500);
+            
+            if (winner) {
+                gameWon = true;
+                winnerAlert.textContent = `🎉 恭喜 ${winner.name} 获胜！最终得分：${winner.totalScore} 分 🎉`;
+                winnerAlert.style.display = 'block';
+            }
+        }
+
+        // 重置游戏
+        function resetGame() {
+            scoreSection.style.display = 'none';
+            playerNumberSelect.value = '2';
+            playerInfoSetup.style.display = 'none';
+            winnerAlert.style.display = 'none';
+            playerInfoItems.innerHTML = '';
+        }
+    </script>
+</body>
+</html>
